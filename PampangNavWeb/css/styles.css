@@ -1,0 +1,113 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Custom colors matching Android app */
+:root {
+    --color-primary: #005031;
+    --color-primary-light: #01b760;
+}
+
+.bg-primary {
+    background-color: var(--color-primary);
+}
+
+.text-primary {
+    color: var(--color-primary);
+}
+
+.text-primary-light {
+    color: var(--color-primary-light);
+}
+
+.focus\:ring-primary-light:focus {
+    --tw-ring-color: var(--color-primary-light);
+}
+
+.border-primary-light {
+    border-color: var(--color-primary-light);
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Input focus states */
+input:focus {
+    outline: none;
+}
+
+/* Button hover effect */
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .bg-white {
+        box-shadow: none;
+    }
+}
+
+/* Error message animation */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#errorMessage:not(.hidden) {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Modal animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#successModal:not(.hidden) {
+    animation: fadeIn 0.3s ease-out;
+}
+
+#successModal:not(.hidden) > div {
+    animation: scaleIn 0.3s ease-out;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+}

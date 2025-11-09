@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PNAV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/x-icon" href="media/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="min-h-screen bg-primary flex items-center justify-center px-4 py-8">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <!-- Logo -->
+            <div class="text-center mb-6">
+                <img src="media/pampang_nav_logo.png" alt="PNAV Logo" class="mx-auto w-24 h-auto">
+            </div>
+
+
+            <!-- Title -->
+            <h2 class="text-gray-700 text-xl font-medium text-center mb-6">SIGN IN</h2>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <!-- Email Input -->
+                <div>
+                    <input type="email" id="email" placeholder="Email" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <input type="password" id="password" placeholder="Password" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage" class="hidden text-red-500 text-sm text-center"></div>
+
+                <!-- Login Button -->
+                <button type="submit" id="loginBtn"
+                    class="w-full bg-primary text-white font-medium py-3 rounded-md hover:bg-opacity-90 transition duration-200">
+                    LOGIN
+                </button>
+
+                <!-- Sign Up Link -->
+                <div class="text-center text-sm">
+                    <span class="text-gray-600">Don't have an account?</span>
+                    <a href="signup.html" class="text-primary-light hover:underline ml-1">SIGN UP</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+</body>
+
+</html>

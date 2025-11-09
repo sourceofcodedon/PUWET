@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sign Up - PNAV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/x-icon" href="media/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="min-h-screen bg-primary flex items-center justify-center px-4 py-8">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <!-- Logo -->
+            <div class="text-center mb-6">
+                <img src="media/pampang_nav_logo.png" alt="PNAV Logo" class="mx-auto w-24 h-auto">
+            </div>
+
+            <!-- Title -->
+            <h2 class="text-gray-700 text-xl font-medium text-center mb-6">SIGN UP</h2>
+
+            <!-- Sign Up Form -->
+            <form id="signupForm" class="space-y-4">
+                <!-- Email Input -->
+                <div>
+                    <input type="email" id="email" placeholder="Email" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <input type="password" id="password" placeholder="Password" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Confirm Password Input -->
+                <div>
+                    <input type="password" id="confirmPassword" placeholder="Confirm password" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Full Name Input -->
+                <div>
+                    <input type="text" id="fullName" placeholder="Full Name" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition">
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage" class="hidden text-red-500 text-sm text-center"></div>
+
+                <!-- Sign Up Button -->
+                <button type="submit" id="signupBtn"
+                    class="w-full bg-primary text-white font-medium py-3 rounded-md hover:bg-opacity-90 transition duration-200">
+                    SIGN UP
+                </button>
+
+                <!-- Login Link -->
+                <div class="text-center text-sm">
+                    <span class="text-gray-600">Already have account?</span>
+                    <a href="login.html" class="text-primary-light hover:underline ml-1">LOGIN</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4 z-50">
+        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full transform transition-all">
+            <div class="text-center">
+                <!-- Success Icon -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                    <svg class="h-10 w-10 text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+
+                <!-- Success Message -->
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Registration Submitted!</h3>
+                <p class="text-gray-600 mb-6">Your registration is pending approval. You will be notified once an admin grants you access.</p>
+
+                <!-- OK Button -->
+                <button id="modalOkBtn"
+                    class="w-full bg-primary text-white font-medium py-3 rounded-md hover:bg-opacity-90 transition duration-200">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+</body>
+
+</html>
