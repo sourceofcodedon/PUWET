@@ -36,6 +36,28 @@ onAuthStateChanged(auth, async (user) => {
         // Display user email
         document.getElementById('userEmail').textContent = user.email;
 
+        // Fetch user data from Firestore to get the profile picture
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            const profilePictureUrl = userData.profilePicture;
+            const userImage = document.getElementById('userImage');
+
+            if (profilePictureUrl) {
+                userImage.src = profilePictureUrl;
+            } else {
+                // Show default SVG if no profile picture
+                userImage.innerHTML = `
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                `;
+            }
+        }
+
         // Load dashboard data
         await loadDashboardData();
 
