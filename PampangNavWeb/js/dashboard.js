@@ -10,7 +10,8 @@ import {
     addDoc,
     getDoc,
     updateDoc,
-    deleteDoc
+    deleteDoc,
+    setDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Global variables
@@ -32,15 +33,15 @@ const storesContent = document.getElementById('storesContent');
 // Check authentication state
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        console.log('User is logged in:', user.uid);
-        // Display user email
-        document.getElementById('userEmail').textContent = user.email;
-
-        // Fetch user data from Firestore to get the profile picture
+        // Get user data from Firestore to check role
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
+        if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+            // User is an admin, proceed to load dashboard
+            console.log('Admin user is logged in:', user.uid);
+            document.getElementById('userEmail').textContent = user.email;
+
             const userData = userDocSnap.data();
             const profilePictureUrl = userData.profilePicture;
             const userImage = document.getElementById('userImage');
@@ -48,7 +49,6 @@ onAuthStateChanged(auth, async (user) => {
             if (profilePictureUrl) {
                 userImage.src = profilePictureUrl;
             } else {
-                // Show default SVG if no profile picture
                 userImage.innerHTML = `
                     <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -56,16 +56,17 @@ onAuthStateChanged(auth, async (user) => {
                     </svg>
                 `;
             }
+
+            await loadDashboardData();
+            setupNavigation();
+        } else {
+            // Not an admin or user document doesn't exist, sign out and redirect
+            console.log('User is not an admin or data not found, signing out...');
+            await signOut(auth);
+            window.location.href = 'login.html';
         }
-
-        // Load dashboard data
-        await loadDashboardData();
-
-        // Setup navigation
-        setupNavigation();
     } else {
         console.log('No user logged in, redirecting to login...');
-        // Redirect to login if not authenticated
         window.location.href = 'login.html';
     }
 });
@@ -249,7 +250,7 @@ async function loadDashboardData() {
 
         // Count users by role and store all users data
         usersSnapshot.forEach((doc) => {
-            const userData = doc.data();
+            const userData = { id: doc.id, ...doc.data() };
             const role = userData.role;
 
             if (role === 'admin') {
@@ -403,11 +404,11 @@ function createUserTableRow(user) {
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.username || 'N/A'}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.email || 'N/A'}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button class="text-red-600 hover:text-red-900" data-uid="${user.uid}">Delete</button>
+            <button class="text-red-600 hover:text-red-900" data-uid="${user.id}">Delete</button>
         </td>
     `;
 
-    row.querySelector('button[data-uid]').addEventListener('click', () => deleteUser(user.uid));
+    row.querySelector('button[data-uid]').addEventListener('click', () => deleteUser(user.id));
 
     return row;
 }
@@ -589,7 +590,7 @@ async function loadPendingUsersList() {
         const q = query(pendingUsersCollection, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
 
-        pendingUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const pendingUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         loading.classList.add('hidden');
 
@@ -619,29 +620,44 @@ function createPendingUserTableRow(user) {
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.username || 'N/A'}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.email || 'N/A'}</td>
         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button class="text-green-600 hover:text-green-900" data-action="approve" data-uid="${user.uid}">Approve</button>
-            <button class="text-red-600 hover:text-red-900 ml-4" data-action="reject" data-id="${user.id}">Reject</button>
+            <button class="text-green-600 hover:text-green-900" data-action="approve" data-uid="${user.id}">Approve</button>
+            <button class="text-red-600 hover:text-red-900 ml-4" data-action="reject" data-uid="${user.id}">Reject</button>
         </td>
     `;
 
     // Add event listeners for approve/reject buttons
-    row.querySelector('[data-action="approve"]').addEventListener('click', () => approveUser(user.uid, user.id));
+    row.querySelector('[data-action="approve"]').addEventListener('click', () => approveUser(user.id));
     row.querySelector('[data-action="reject"]').addEventListener('click', () => rejectUser(user.id));
 
     return row;
 }
 
 // Approve a pending user
-async function approveUser(uid, pendingId) {
+async function approveUser(uid) {
     if (!confirm('Are you sure you want to approve this user?')) return;
 
     try {
-        // Update user's role to 'admin' in the main 'users' collection
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, { role: 'admin' });
+        // Get the pending user's data
+        const pendingUserRef = doc(db, 'pendingUsers', uid);
+        const pendingUserSnap = await getDoc(pendingUserRef);
 
-        // Delete the user from 'pendingUsers'
-        await deleteDoc(doc(db, 'pendingUsers', pendingId));
+        if (!pendingUserSnap.exists()) {
+            throw new Error('Pending user not found.');
+        }
+
+        const pendingUserData = pendingUserSnap.data();
+
+        // Create a new user in the 'users' collection
+        const userRef = doc(db, 'users', uid);
+        await setDoc(userRef, {
+            email: pendingUserData.email,
+            username: pendingUserData.username,
+            createdAt: pendingUserData.createdAt,
+            role: 'admin' // Assign 'admin' role upon approval
+        });
+
+        // Delete the user from the 'pendingUsers' collection
+        await deleteDoc(pendingUserRef);
 
         // Refresh the list
         loadPendingUsersList();
@@ -657,15 +673,19 @@ async function approveUser(uid, pendingId) {
 }
 
 // Reject a pending user
-async function rejectUser(pendingId) {
+async function rejectUser(uid) {
     if (!confirm('Are you sure you want to reject this user? This action cannot be undone.')) return;
 
     try {
-        // Just delete from 'pendingUsers'
-        await deleteDoc(doc(db, 'pendingUsers', pendingId));
+        // Delete from the 'pendingUsers' collection
+        if (uid) {
+            await deleteDoc(doc(db, 'pendingUsers', uid));
+        }
 
         // Refresh the list
         loadPendingUsersList();
+        // Refresh dashboard data
+        loadDashboardData();
 
         alert('User rejected successfully.');
 

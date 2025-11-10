@@ -114,10 +114,7 @@ async function register(email, password, fullName, token) {
             createdAt: Date.now()
         };
 
-        await addDoc(collection(db, 'pendingUsers'), pendingUserData);
-
-        // Also store user data in 'users' collection with pending role
-        await setDoc(doc(db, 'users', uid), pendingUserData);
+        await setDoc(doc(db, 'pendingUsers', uid), pendingUserData);
 
         // Success - show modal and redirect to login
         showSuccessModal();
