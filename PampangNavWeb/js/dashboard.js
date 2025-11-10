@@ -76,9 +76,11 @@ function setupNavigation() {
     // Navigation item clicks
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const view = item.querySelector('span').textContent.toLowerCase().replace(' ', '');
-            switchView(view);
+            if (item.getAttribute('href') === 'javascript:void(0)') {
+                e.preventDefault();
+                const view = item.querySelector('span').textContent.toLowerCase().replace(' ', '');
+                switchView(view);
+            }
         });
     });
 
