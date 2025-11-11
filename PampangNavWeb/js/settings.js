@@ -2,7 +2,7 @@ import { auth, db } from './firebase-config.js';
 import {
     onAuthStateChanged,
     updateProfile,
-    updateEmail,
+    verifyBeforeUpdateEmail,
     updatePassword,
     reauthenticateWithCredential,
     EmailAuthProvider,
@@ -62,7 +62,10 @@ function setLoading(buttonId, isLoading, originalText) {
 // Load user data for sidebar and profile picture preview
 async function loadUserData() {
     if (currentUser) {
-        document.getElementById('userEmail').textContent = currentUser.email;
+        const userEmailElement = document.getElementById('userEmail');
+        if (userEmailElement) {
+            userEmailElement.textContent = currentUser.email;
+        }
 
         // Fetch user data from Firestore to get the profile picture and username
         userDocRef = doc(db, "users", currentUser.uid);
@@ -77,16 +80,15 @@ async function loadUserData() {
             const profilePicturePreview = document.getElementById('profilePicturePreview');
             const newUsernameInput = document.getElementById('newUsername');
 
-            if (profilePictureUrl) {
+            if (userImage && profilePictureUrl) {
                 userImage.src = profilePictureUrl;
+            }
+            if (profilePicturePreview && profilePictureUrl) {
                 profilePicturePreview.src = profilePictureUrl;
-            } else {
-                // Show default SVG if no profile picture
-                userImage.src = 'https://via.placeholder.com/40'; // Placeholder for sidebar
-                profilePicturePreview.src = 'https://via.placeholder.com/96'; // Placeholder for settings page
             }
 
-            if (username) {
+
+            if (newUsernameInput && username) {
                 newUsernameInput.value = username;
             }
         }
@@ -118,9 +120,8 @@ document.getElementById('changeUsernameForm')?.addEventListener('submit', async 
         await updateProfile(currentUser, { displayName: newUsername });
 
         // Update in Firestore
-        if (userDocRef) {
-            await updateDoc(userDocRef, { username: newUsername });
-        }
+        const userDocRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userDocRef, { username: newUsername });
 
         showSuccessModal('Username Updated', 'Your username has been successfully updated.');
         showMessage(messageElementId, 'Username updated successfully!', false);
@@ -154,16 +155,10 @@ document.getElementById('changeEmailForm')?.addEventListener('submit', async (e)
     setLoading('changeEmailBtn', true, 'Update Email');
     try {
         await reauthenticateUser(currentPassword);
-        await updateEmail(currentUser, newEmail);
+        await verifyBeforeUpdateEmail(currentUser, newEmail);
 
-        // Update in Firestore
-        if (userDocRef) {
-            await updateDoc(userDocRef, { email: newEmail });
-        }
-
-        showSuccessModal('Email Updated', 'Your email has been successfully updated. You will be logged out to re-authenticate with the new email.');
-        showMessage(messageElementId, 'Email updated successfully! Please log in again with your new email.', false);
-        setTimeout(() => signOut(auth), 3000); // Log out after a delay
+        showSuccessModal('Verification Email Sent', 'A verification email has been sent to your new email address. Please click the link in the email to complete the update.');
+        showMessage(messageElementId, 'Verification email sent successfully!', false);
     } catch (error) {
         console.error('Error updating email:', error);
         let errorMessage = `Failed to update email: ${error.message}`;
