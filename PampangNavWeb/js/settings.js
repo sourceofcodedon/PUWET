@@ -2,7 +2,7 @@ import { auth, db } from './firebase-config.js';
 import {
     onAuthStateChanged,
     updateProfile,
-    verifyBeforeUpdateEmail,
+    updateEmail,
     updatePassword,
     reauthenticateWithCredential,
     EmailAuthProvider,
@@ -39,7 +39,6 @@ function showSuccessModal(title, message) {
         okBtn.onclick = () => {
             modal.classList.add('hidden');
             document.body.classList.remove('modal-open');
-            // Reload user data to reflect changes in sidebar
             loadUserData();
         };
     }
@@ -62,12 +61,8 @@ function setLoading(buttonId, isLoading, originalText) {
 // Load user data for sidebar and profile picture preview
 async function loadUserData() {
     if (currentUser) {
-        const userEmailElement = document.getElementById('userEmail');
-        if (userEmailElement) {
-            userEmailElement.textContent = currentUser.email;
-        }
+        document.getElementById('userEmail').textContent = currentUser.email;
 
-        // Fetch user data from Firestore to get the profile picture and username
         userDocRef = doc(db, "users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -80,15 +75,15 @@ async function loadUserData() {
             const profilePicturePreview = document.getElementById('profilePicturePreview');
             const newUsernameInput = document.getElementById('newUsername');
 
-            if (userImage && profilePictureUrl) {
+            if (profilePictureUrl) {
                 userImage.src = profilePictureUrl;
-            }
-            if (profilePicturePreview && profilePictureUrl) {
                 profilePicturePreview.src = profilePictureUrl;
+            } else {
+                userImage.src = 'https://via.placeholder.com/40';
+                profilePicturePreview.src = 'https://via.placeholder.com/96';
             }
 
-
-            if (newUsernameInput && username) {
+            if (username) {
                 newUsernameInput.value = username;
             }
         }
@@ -116,12 +111,10 @@ document.getElementById('changeUsernameForm')?.addEventListener('submit', async 
 
     setLoading('changeUsernameBtn', true, 'Update Username');
     try {
-        // Update in Firebase Auth profile
         await updateProfile(currentUser, { displayName: newUsername });
-
-        // Update in Firestore
-        const userDocRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userDocRef, { username: newUsername });
+        if (userDocRef) {
+            await updateDoc(userDocRef, { username: newUsername });
+        }
 
         showSuccessModal('Username Updated', 'Your username has been successfully updated.');
         showMessage(messageElementId, 'Username updated successfully!', false);
@@ -133,7 +126,7 @@ document.getElementById('changeUsernameForm')?.addEventListener('submit', async 
     }
 });
 
-// Change Email
+// ✅ FIXED — Change Email (with verification)
 document.getElementById('changeEmailForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -154,11 +147,34 @@ document.getElementById('changeEmailForm')?.addEventListener('submit', async (e)
 
     setLoading('changeEmailBtn', true, 'Update Email');
     try {
-        await reauthenticateUser(currentPassword);
-        await verifyBeforeUpdateEmail(currentUser, newEmail);
+        const providerId = currentUser.providerData[0]?.providerId;
+        if (providerId === 'google.com') {
+            showMessage(messageElementId,
+                'You cannot change your Google account email here. Please change it in your Google Account settings.',
+                true
+            );
+            return;
+        }
 
-        showSuccessModal('Verification Email Sent', 'A verification email has been sent to your new email address. Please click the link in the email to complete the update.');
-        showMessage(messageElementId, 'Verification email sent successfully!', false);
+        await reauthenticateUser(currentPassword);
+
+        await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js')
+            .then(({ verifyBeforeUpdateEmail }) => verifyBeforeUpdateEmail(currentUser, newEmail));
+
+        showSuccessModal(
+            'Verify Your New Email',
+            `A verification link has been sent to ${newEmail}. Please open that email and confirm to complete the change.`
+        );
+
+        showMessage(messageElementId,
+            'Verification email sent. Please verify to complete the email change.',
+            false
+        );
+
+        if (userDocRef) {
+            await updateDoc(userDocRef, { pendingEmail: newEmail });
+        }
+
     } catch (error) {
         console.error('Error updating email:', error);
         let errorMessage = `Failed to update email: ${error.message}`;
@@ -166,6 +182,10 @@ document.getElementById('changeEmailForm')?.addEventListener('submit', async (e)
             errorMessage = 'Invalid current password.';
         } else if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email is already in use by another account.';
+        } else if (error.code === 'auth/operation-not-allowed') {
+            errorMessage = 'Email update not allowed. Verify the new email before changing or check Firebase settings.';
+        } else if (error.code === 'auth/requires-recent-login') {
+            errorMessage = 'Please log in again before changing your email.';
         }
         showMessage(messageElementId, errorMessage, true);
     } finally {
@@ -205,7 +225,7 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
 
         showSuccessModal('Password Updated', 'Your password has been successfully updated.');
         showMessage(messageElementId, 'Password updated successfully!', false);
-        document.getElementById('changePasswordForm').reset(); // Clear form
+        document.getElementById('changePasswordForm').reset();
     } catch (error) {
         console.error('Error updating password:', error);
         let errorMessage = `Failed to update password: ${error.message}`;
@@ -218,21 +238,14 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
     }
 });
 
-
-
-// Logout functionality (copied from dashboard.js for consistency)
+// Logout functionality
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
         try {
-            console.log('Logging out...');
             await signOut(auth);
-
-            // Clear localStorage
             localStorage.removeItem('loggedInRole');
             localStorage.removeItem('userId');
-
-            console.log('Logout successful, redirecting to login...');
             window.location.href = 'login.html';
         } catch (error) {
             console.error('Logout error:', error);
@@ -241,13 +254,30 @@ if (logoutBtn) {
     });
 }
 
-// Check authentication state
-onAuthStateChanged(auth, (user) => {
+// ✅ Check authentication state
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        loadUserData();
+        await loadUserData();
+
+        // ✅ If user verified new email, update Firestore and show dialog
+        if (userDocRef && user.email) {
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                if (userData.pendingEmail === user.email) {
+                    await updateDoc(userDocRef, { email: user.email, pendingEmail: null });
+
+                    // ✅ Show notification after verified email update
+                    showSuccessModal(
+                        'Email Updated',
+                        `Your email address has been successfully changed to ${user.email}.`
+                    );
+                    showMessage('emailMessage', 'Email has been changed successfully.', false);
+                }
+            }
+        }
     } else {
-        console.log('No user logged in, redirecting to login...');
         window.location.href = 'login.html';
     }
 });
