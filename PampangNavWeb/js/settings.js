@@ -159,7 +159,6 @@ document.getElementById('changeEmailForm')?.addEventListener('submit', async (e)
 
         await reauthenticateUser(currentPassword);
 
-<<<<<<< HEAD
         await verifyBeforeUpdateEmail(currentUser, newEmail);
 
         showSuccessModal(
@@ -176,25 +175,6 @@ document.getElementById('changeEmailForm')?.addEventListener('submit', async (e)
             await updateDoc(userDocRef, { pendingEmail: newEmail });
         }
 
-=======
-        await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js')
-            .then(({ verifyBeforeUpdateEmail }) => verifyBeforeUpdateEmail(currentUser, newEmail));
-
-        showSuccessModal(
-            'Verify Your New Email',
-            `A verification link has been sent to ${newEmail}. Please open that email and confirm to complete the change.`
-        );
-
-        showMessage(messageElementId,
-            'Verification email sent. Please verify to complete the email change.',
-            false
-        );
-
-        if (userDocRef) {
-            await updateDoc(userDocRef, { pendingEmail: newEmail });
-        }
-
->>>>>>> 1915045985855251c83c646ea665cc9c7d7e944e
     } catch (error) {
         console.error('Error updating email:', error);
         let errorMessage = `Failed to update email: ${error.message}`;
